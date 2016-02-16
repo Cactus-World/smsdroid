@@ -22,6 +22,8 @@ package de.ub0r.android.smsdroid;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
+import android.provider.Telephony;
 
 /**
  * Listen for new mms.
@@ -29,11 +31,24 @@ import android.content.Intent;
  * @author flx
  */
 public class MmsReceiver extends BroadcastReceiver {
+    /**
+     * Intent.action for receiving SMS.
+     */
+    private static final String ACTION_SMS_OLD = "android.provider.Telephony.SMS_RECEIVED";
+
+    private static final String ACTION_SMS_NEW = "android.provider.Telephony.SMS_DELIVER";
 
     @Override
     public final void onReceive(final Context context, final Intent intent) {
         if (SMSdroid.isDefaultApp(context)) {
-            SmsReceiver.handleOnReceive(this, context, intent);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT ) {
+                if (intent.getAction().equals(ACTION_SMS_NEW))
+                    SmsReceiver.handleOnReceive(this, context, intent, ACTION_SMS_NEW);
+                else if (intent.getAction().equals(SenderActivity.MESSAGE_SENT_ACTION))
+                    SmsReceiver.handleSent(context, intent, this.getResultCode());
+            }
+            else
+                SmsReceiver.handleOnReceive(this, context, intent, ACTION_SMS_OLD);
         }
     }
 }

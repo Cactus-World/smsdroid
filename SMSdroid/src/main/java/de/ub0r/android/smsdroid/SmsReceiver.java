@@ -42,6 +42,7 @@ import android.os.Bundle;
 import android.os.PowerManager;
 import android.preference.PreferenceManager;
 import android.provider.CallLog.Calls;
+import android.provider.Telephony;
 import android.support.v4.app.NotificationCompat;
 import android.telephony.SmsMessage;
 import android.text.TextUtils;
@@ -142,12 +143,19 @@ public class SmsReceiver extends BroadcastReceiver {
     @Override
     public final void onReceive(final Context context, final Intent intent) {
         if (SMSdroid.isDefaultApp(context)) {
-            handleOnReceive(this, context, intent);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT ) {
+                if (intent.getAction().equals(ACTION_SMS_NEW))
+                    handleOnReceive(this, context, intent, ACTION_SMS_NEW);
+                else if (intent.getAction().equals(SenderActivity.MESSAGE_SENT_ACTION))
+                    handleSent(context,intent,this.getResultCode());
+            }
+            else
+                handleOnReceive(this, context, intent, ACTION_SMS_OLD);
         }
     }
 
     static void handleOnReceive(final BroadcastReceiver receiver, final Context context,
-            final Intent intent) {
+                                final Intent intent,String SMS_Action) {
         final String action = intent.getAction();
         Log.d(TAG, "onReceive(context, ", action, ")");
         final PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
@@ -669,8 +677,8 @@ public class SmsReceiver extends BroadcastReceiver {
      * @param intent     {@link Intent}
      * @param resultCode message status
      */
-    private static void handleSent(final Context context, final Intent intent,
-            final int resultCode) {
+    public static void handleSent(final Context context, final Intent intent,
+                                  final int resultCode) {
         final Uri uri = intent.getData();
         Log.d(TAG, "sent message: ", uri, ", rc: ", resultCode);
         if (uri == null) {
